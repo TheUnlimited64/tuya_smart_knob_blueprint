@@ -1,24 +1,30 @@
 blueprint:
-  name: Smart Knob Light Control (Sensor-based)
-  description: Control lights with a Smart Knob using sensor trigger (optimized for responsiveness and smoothness).
+  name: Enhanced Smart Knob Light Control
+  description: Control lights with a Smart Knob using rotation and click actions
   domain: automation
   input:
     light:
       name: Light(s)
-      description: Light(s) to control.
+      description: Light(s) to control
       selector:
         target:
           entity:
             domain: light
     brightness_sensor:
       name: Brightness Delta Sensor
-      description: The sensor that provides brightness delta values from the Smart Knob.
+      description: Sensor providing brightness delta values from Smart Knob rotation
+      selector:
+        entity:
+          domain: sensor
+    click_sensor:
+      name: Click Action Sensor
+      description: Sensor providing click actions from Smart Knob (expects 'toggle' state)
       selector:
         entity:
           domain: sensor
     step_percent:
       name: Brightness Step
-      description: Brightness change per step.
+      description: Percentage of brightness change per rotation step
       selector:
         number:
           min: 1
@@ -27,7 +33,7 @@ blueprint:
       default: 10
     transition_time:
       name: Transition Time
-      description: Transition time for brightness changes (in seconds).
+      description: Transition duration for brightness changes (seconds)
       selector:
         number:
           min: 0
@@ -42,24 +48,44 @@ max_exceeded: silent
 trigger:
   - platform: state
     entity_id: !input brightness_sensor
+    id: rotation
+  - platform: state
+    entity_id: !input click_sensor
+    to: toggle
+    id: click
 
 action:
   - variables:
-      payload: "{{ trigger.to_state.state | float(0) }}"
       step_percent: !input step_percent
       transition_time: !input transition_time
 
   - choose:
-    - conditions:
-        - "{{ not is_state(trigger.entity_id, 'unavailable') }}"
-        - "{{ not is_state(trigger.entity_id, 'unknown') }}"
-        - "{{ trigger.to_state.state not in ['unavailable', 'unknown'] }}"
-      sequence:
-        - service: light.turn_on
-          target: !input light
-          data:
-            brightness_step_pct: "{{ step_percent * (payload/12.5) }}"
-            transition: "{{ transition_time }}"
+      # Handle rotation action
+      - conditions:
+          - condition: trigger
+            id: rotation
+          - condition: template
+            value_template: >
+              {{ not is_state(trigger.entity_id, 'unavailable') and
+                 not is_state(trigger.entity_id, 'unknown') and
+                 trigger.to_state.state not in ['unavailable', 'unknown'] }}
+        sequence:
+          - service: light.turn_on
+            target: !input light
+            data:
+              brightness_step_pct: "{{ (trigger.to_state.state | float(0)) * (step_percent/12.5) }}"
+              transition: "{{ transition_time | float(0) }}"
+
+      # Handle click action
+      - conditions:
+          - condition: trigger
+            id: click
+        sequence:
+          - service: light.toggle
+            target: !input light
+            data:
+              transition: "{{ transition_time | float(0) }}"
+
     default:
       - service: logbook.log
         data:
