@@ -1,0 +1,67 @@
+blueprint:
+  name: Smart Knob Light Control (Sensor-based)
+  description: Control lights with a Smart Knob using sensor trigger (optimized for responsiveness and smoothness).
+  domain: automation
+  input:
+    light:
+      name: Light(s)
+      description: Light(s) to control.
+      selector:
+        target:
+          entity:
+            domain: light
+    brightness_sensor:
+      name: Brightness Delta Sensor
+      description: The sensor that provides brightness delta values from the Smart Knob.
+      selector:
+        entity:
+          domain: sensor
+    step_percent:
+      name: Brightness Step
+      description: Brightness change per step.
+      selector:
+        number:
+          min: 1
+          max: 100
+          mode: slider
+      default: 10
+    transition_time:
+      name: Transition Time
+      description: Transition time for brightness changes (in seconds).
+      selector:
+        number:
+          min: 0
+          max: 5
+          step: 0.1
+          mode: slider
+      default: 0.5
+
+mode: parallel
+max_exceeded: silent
+
+trigger:
+  - platform: state
+    entity_id: !input brightness_sensor
+
+action:
+  - variables:
+      payload: "{{ trigger.to_state.state | float(0) }}"
+      step_percent: !input step_percent
+      transition_time: !input transition_time
+
+  - choose:
+    - conditions:
+        - "{{ not is_state(trigger.entity_id, 'unavailable') }}"
+        - "{{ not is_state(trigger.entity_id, 'unknown') }}"
+        - "{{ trigger.to_state.state not in ['unavailable', 'unknown'] }}"
+      sequence:
+        - service: light.turn_on
+          target: !input light
+          data:
+            brightness_step_pct: "{{ step_percent * (payload/12.5) }}"
+            transition: "{{ transition_time }}"
+    default:
+      - service: logbook.log
+        data:
+          name: "Smart Knob Debug"
+          message: "Unhandled state: {{ trigger.to_state.state }}"
