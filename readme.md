@@ -17,6 +17,8 @@ As of now (24.11.2024) the required change is not in zigbee2mqtt converter yet, 
 
 You should now see in your device page under details a new entry called `Action brightness delta`. Make sure the smart knob is in command mode. To change the mode quickly click the smart knob 3 times, it will change the mode.
 
+You'll also have to set the device specific settings and then fill simulated brightness. I've set it to 1 and 1, and it works.
+
 ## Blueprint
 
 The blueprint is the second part that allows dimming or even volume control.
