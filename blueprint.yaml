@@ -1,15 +1,8 @@
 blueprint:
-  name: Enhanced Smart Knob Light Control
-  description: Control lights with a Smart Knob using rotation and click actions
+  name: Universal Smart Knob Control
+  description: Control any entity with a Smart Knob using customizable rotation and click actions
   domain: automation
   input:
-    light:
-      name: Light(s)
-      description: Light(s) to control
-      selector:
-        target:
-          entity:
-            domain: light
     brightness_sensor:
       name: Brightness Delta Sensor
       description: Sensor providing brightness delta values from Smart Knob rotation
@@ -22,25 +15,16 @@ blueprint:
       selector:
         entity:
           domain: sensor
-    step_percent:
-      name: Brightness Step
-      description: Percentage of brightness change per rotation step
+    rotation_action:
+      name: Rotation Action
+      description: Action to execute when rotating the knob. Use 'delta_value' variable for the rotation value.
       selector:
-        number:
-          min: 1
-          max: 100
-          mode: slider
-      default: 10
-    transition_time:
-      name: Transition Time
-      description: Transition duration for brightness changes (seconds)
+        action: {}
+    click_action:
+      name: Click Action
+      description: Action to execute when clicking the knob
       selector:
-        number:
-          min: 0
-          max: 5
-          step: 0.1
-          mode: slider
-      default: 0.5
+        action: {}
 
 mode: parallel
 max_exceeded: silent
@@ -55,10 +39,6 @@ trigger:
     id: click
 
 action:
-  - variables:
-      step_percent: !input step_percent
-      transition_time: !input transition_time
-
   - choose:
       # Handle rotation action
       - conditions:
@@ -70,21 +50,18 @@ action:
                  not is_state(trigger.entity_id, 'unknown') and
                  trigger.to_state.state not in ['unavailable', 'unknown'] }}
         sequence:
-          - service: light.turn_on
-            target: !input light
-            data:
-              brightness_step_pct: "{{ (trigger.to_state.state | float(0)) * (step_percent/12.5) }}"
-              transition: "{{ transition_time | float(0) }}"
+          - variables:
+              delta_value: "{{ trigger.to_state.state | float(0) / 12.5 }}"
+          - alias: "Execute rotation action"
+            sequence: !input rotation_action
 
       # Handle click action
       - conditions:
           - condition: trigger
             id: click
         sequence:
-          - service: light.toggle
-            target: !input light
-            data:
-              transition: "{{ transition_time | float(0) }}"
+          - alias: "Execute click action"
+            sequence: !input click_action
 
     default:
       - service: logbook.log
