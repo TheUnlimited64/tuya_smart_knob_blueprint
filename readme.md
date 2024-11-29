@@ -74,7 +74,7 @@ This blueprint additionally uses the color temperature delta value from zigbee2m
 Usage example:
 
 ```
-alias: Universal Smart Knob Control Tuya
+alias: Universal Smart Knob Control
 description: ""
 use_blueprint:
   path: TheUnlimited64/blueprint_color_temp.yaml
@@ -87,23 +87,21 @@ use_blueprint:
           entity_id: light.schlafzimmer_haupt_lampe
         data:
           brightness_step_pct: "{{ delta_value * 10 }}"
-          transition: 0.5
+          transition: 0.25
         action: light.turn_on
     click_action:
       - target:
           entity_id: light.schlafzimmer_haupt_lampe
         action: light.toggle
         data:
-          transition: 0.5
+          transition: 0.25
     color_temperature_action:
       - target:
-          entity_id: light.schlafzimmer_haupt_lampe
-        action: light.turn_on
+          entity_id: light.wled_bett
         data:
-          kelvin: >-
-            {{state_attr('light.schlafzimmer_haupt_lampe', 'color_temp') | int +
-            delta_value*500}}
-          transition: 0.5
+          brightness_step_pct: "{{ delta_value * 20 }}"
+          transition: 0.25
+        action: light.turn_on
 ```
 
 Instead Color Temperature
