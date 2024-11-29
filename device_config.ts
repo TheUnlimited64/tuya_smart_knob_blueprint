@@ -33,7 +33,7 @@ const fz = {
                 payload.action_transition_time = msg.data.transtime / 100;
             }
 
-            if (options.simulated_color_temperature) {
+            if (options.simulated_color_temperature_delta) {
                 const deltaOpts = options.simulated_color_temperature_delta ?? 500;
 
                 if (globalStore.getValue(msg.endpoint, "simulated_color_temperature") === undefined) {
