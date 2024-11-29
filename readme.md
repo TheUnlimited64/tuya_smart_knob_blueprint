@@ -27,6 +27,8 @@ The blueprint is the second part that allows dimming or even volume control.
 
 ### Usage example
 
+#### Default blueprint
+
 The blueprint exposes the `delta_value` variable to be used for smart dimming. It contains how many ticks where send by the action of the smart knob. You can also control your volume control or build even more complex automations.
 
 
@@ -54,4 +56,45 @@ use_blueprint:
         action: light.toggle
         data:
           transition: 0.5
+```
+
+#### Color Temperature blueprint
+
+This blueprint additionally uses the color temperature delta value from zigbee2mqtt. If you press and then turn, it will counts towards the color temperature. But you're free to use the value for anything else. Maybe a different lamp, led strip.
+
+
+Usage example:
+
+```
+alias: Universal Smart Knob Control Tuya
+description: ""
+use_blueprint:
+  path: TheUnlimited64/blueprint_color_temp.yaml
+  input:
+    brightness_sensor: sensor.nachttisch_smart_knob_action_brightness_delta
+    click_sensor: sensor.nachttisch_smart_knob_action
+    color_temperature_sensor: sensor.nachttisch_smart_knob_action_color_temperature_delta
+    rotation_action:
+      - target:
+          entity_id: light.schlafzimmer_haupt_lampe
+        data:
+          brightness_step_pct: "{{ delta_value * 10 }}"
+          transition: 0.5
+        action: light.turn_on
+    click_action:
+      - target:
+          entity_id: light.schlafzimmer_haupt_lampe
+        action: light.toggle
+        data:
+          transition: 0.5
+    color_temperature_action:
+      - target:
+          entity_id: light.schlafzimmer_haupt_lampe
+        action: light.turn_on
+        data:
+          kelvin: >-
+            {{state_attr('light.schlafzimmer_haupt_lampe', 'color_temp') | int +
+            delta_value*500}}
+          transition: 0.5
+
 ```

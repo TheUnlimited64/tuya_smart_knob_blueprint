@@ -1,0 +1,99 @@
+blueprint:
+  name: Universal Smart Knob Control
+  description: Control any entity with a Smart Knob using customizable rotation and click actions
+  domain: automation
+  input:
+    brightness_sensor:
+      name: Brightness Delta Sensor
+      description: Sensor providing brightness delta values from Smart Knob rotation
+      selector:
+        entity:
+          domain: sensor
+    click_sensor:
+      name: Click Action Sensor
+      description: Sensor providing click actions from Smart Knob (expects 'toggle' state)
+      selector:
+        entity:
+          domain: sensor
+    color_temperature_sensor:
+      name: Sensor supplying color_temperature_delta (press and turn)
+      description: The sensor that exposes the color_temperature_delta value
+      selector:
+        entity:
+          domain: sensor
+    rotation_action:
+      name: Rotation Action
+      description: Action to execute when rotating the knob. Use 'delta_value' variable for the rotation value.
+      default: []
+      selector:
+        action: {}
+    click_action:
+      name: Click Action
+      description: Action to execute when clicking the knob
+      default: []
+      selector:
+        action: {}
+    color_temperature_action:
+      name: Press Turn action
+      description: Action that should be executed when turning while pressing down.
+      default: []
+      selector:
+        action: {}
+
+mode: parallel
+max_exceeded: silent
+
+trigger:
+  - platform: state
+    entity_id: !input brightness_sensor
+    id: rotation
+  - platform: state
+    entity_id: !input click_sensor
+    to: toggle
+    id: click
+  - platform: state
+    entity_id: !input color_temperature_sensor
+    id: color_temperature
+
+action:
+  - choose:
+      # Handle rotation action
+      - conditions:
+        - condition: trigger
+          id: rotation
+        - condition: template
+          value_template: >
+            {{ not is_state(trigger.entity_id, 'unavailable') and
+                not is_state(trigger.entity_id, 'unknown') and
+                trigger.to_state.state not in ['unavailable', 'unknown'] }}
+        sequence:
+          - variables:
+              delta_value: "{{ trigger.to_state.state | float(0) / 12.5 }}"
+          - alias: "Execute rotation action"
+            sequence: !input rotation_action
+      - conditions:
+        - condition: trigger
+          id: color_temperature
+        - condition: template
+          value_template: >
+            {{ not is_state(trigger.entity_id, 'unavailable') and
+                not is_state(trigger.entity_id, 'unknown') and
+                trigger.to_state.state not in ['unavailable', 'unknown', 'null'] }}
+        sequence:
+          - variables:
+              delta_value: "{{ trigger.to_state.state | float(0) }}"
+          - alias: "Execute Color Temperature Action"
+            sequence: !input color_temperature_action
+      # Handle click action
+      - conditions:
+          - condition: trigger
+            id: click
+        sequence:
+          - alias: "Execute click action"
+            sequence: !input click_action
+
+    default:
+      - service: logbook.log
+        data:
+          name: "Smart Knob Debug"
+          message: "Unhandled state: {{ trigger.to_state.state }}"
