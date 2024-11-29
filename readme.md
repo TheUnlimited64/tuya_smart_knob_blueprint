@@ -19,6 +19,8 @@ You should now see in your device page under details a new entry called `Action 
 
 You'll also have to set the device specific settings and then fill simulated brightness. I've set it to 1 and 1, and it works.
 
+For color temperature control, set it under device specific settings to 1 to have publishing 1 tick per rotation tick. Then you're able to calculate with ticks the brightness, color temperature etc. with it.
+
 ## Blueprint
 
 The blueprint is the second part that allows dimming or even volume control.
@@ -102,5 +104,23 @@ use_blueprint:
             {{state_attr('light.schlafzimmer_haupt_lampe', 'color_temp') | int +
             delta_value*500}}
           transition: 0.5
+```
 
+Instead Color Temperature
+
+```
+color_temperature_action:
+      - target:
+          entity_id: light.schlafzimmer_haupt_lampe
+        action: light.turn_on
+        data:
+          kelvin: >-
+            {% set current_temp = state_attr('light.schlafzimmer_haupt_lampe', 'color_temp') | int %}
+            {% set delta = delta_value * 500 %}
+            {% if current_temp + delta > 0 %}
+              {{ current_temp + delta }}
+            {% else %}
+              2700  # Assign a minimum kelvin value if the result is less than or equal to zero
+            {% endif %}
+          transition: 0.5
 ```
