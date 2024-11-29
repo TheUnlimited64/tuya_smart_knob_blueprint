@@ -107,18 +107,21 @@ use_blueprint:
 Instead Color Temperature
 
 ```
-color_temperature_action:
-      - target:
+    color_temperature_action:
+      - service: light.turn_on
+        target:
           entity_id: light.schlafzimmer_haupt_lampe
-        action: light.turn_on
         data:
-          kelvin: >-
-            {% set current_temp = state_attr('light.schlafzimmer_haupt_lampe', 'color_temp') | int %}
-            {% set delta = delta_value * 500 %}
-            {% if current_temp + delta > 0 %}
-              {{ current_temp + delta }}
+          kelvin: >
+            {% set current_temp = state_attr('light.schlafzimmer_haupt_lampe', 'color_temp_kelvin') | default(3000) | int %}
+            {% set delta = delta_value | default(0) | float * 500 %}
+            {% set new_temp = current_temp + delta %}
+            {% if new_temp < 2000 %}
+              2000
+            {% elif new_temp > 6500 %}
+              6500
             {% else %}
-              2700  # Assign a minimum kelvin value if the result is less than or equal to zero
+              {{ new_temp | round }}
             {% endif %}
           transition: 0.5
 ```
