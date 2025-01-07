@@ -6,13 +6,28 @@ I'm happy to annouce that it's now possible to use the Tuya Smart Knob for perfe
 
 ### Zigbee2Mqtt
 
+## CAUTION
+
+
+
+
 As of now (24.11.2024) the required change is not in zigbee2mqtt converter yet, so it requires to use an external converter. For that you'll need access to the filesystem. For examle file-editor, vscode server addon, ssh etc.
 
-1. create a folder named custom_devices next to the configuration.yaml of zigbee2mqtt. In homeassistant it's located in `/homeassistant/zigbee2mqtt/`
+1. create a folder named `external_converters` next to the configuration.yaml of zigbee2mqtt. In homeassistant it's located in `/homeassistant/zigbee2mqtt/`
 2. create a file named `tuya_new.js` or how you like to name your converter and copy the contents of device_config.ts to your created file.
+
+### Zigbee2mqtt > v2.0.0
+3. add the following entry to the configuration.yaml
+```
+homeassistant:
+  legacy_action_sensor: true
+```
+4. restart, now the description of the smart knob should say: `smart knob custom`
+
+### Zigbee2mqtt < v2.0.0
 3. go to the zigbee2mqtt UI and click on settings
 4. navigate to the external converters tab
-5. add entry for your newly created file. eg: `custom_devices/tuya_new.js`
+5. add entry for your newly created file. eg: `external_converters/tuya_new.js`
 6. click submit and restart zigbee2mqtt addon.
 
 You should now see in your device page under details a new entry called `Action brightness delta`. Make sure the smart knob is in command mode. To change the mode quickly click the smart knob 3 times, it will change the mode.
