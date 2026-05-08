@@ -1,9 +1,60 @@
-const fz = require('zigbee-herdsman-converters/converters/fromZigbee')
+
+
 const tz = require('zigbee-herdsman-converters/converters/toZigbee');
 const exposes = require('zigbee-herdsman-converters/lib/exposes');
 const reporting = require('zigbee-herdsman-converters/lib/reporting');
+const utils = require("zigbee-herdsman-converters/lib/utils")
+const globalStore = require("zigbee-herdsman-converters/lib/store")
 const e = exposes.presets;
 const ea = exposes.access;
+
+const { Composite, Numeric, access } = exposes
+const { numberWithinRange, postfixWithEndpointName, addActionGroup, hasAlreadyProcessedMessage } = utils
+
+
+const fz = {
+    ...require('zigbee-herdsman-converters/converters/fromZigbee'),
+    command_step_color_temperature_custom: {
+        cluster: 'lightingColorCtrl',
+        type: 'commandStepColorTemp',
+        options: [
+            new Numeric('simulated_color_temperature_delta', access.SET)
+                .withDescription('Testing testing')
+        ],
+        convert: (model, msg, publish, options, meta) => {
+            if (hasAlreadyProcessedMessage(msg, model)) return;
+            const direction = msg.data.stepmode === 1 ? 'up' : 'down';
+            const payload = {
+                action: postfixWithEndpointName(`color_temperature_step_${direction}`, msg, model, meta),
+                action_step_size: msg.data.stepsize,
+            };
+
+            if (msg.data.transtime !== undefined) {
+                payload.action_transition_time = msg.data.transtime / 100;
+            }
+
+            if (options.simulated_color_temperature) {
+                const deltaOpts = options.simulated_color_temperature_delta ?? 500;
+
+                if (globalStore.getValue(msg.endpoint, "simulated_color_temperature") === undefined) {
+
+                    let color_temperature = globalStore.getValue(msg.endpoint, 'simulated_color_temperature_temperature', 2000);
+                    const delta = (direction === 'up') ? deltaOpts : -deltaOpts;
+                    color_temperature += delta;
+                    color_temperature = numberWithinRange(color_temperature, 2000, 6500);
+                    globalStore.putValue(msg.endpoint, 'simulated_color_temperature_temperature', color_temperature);
+                    const property = postfixWithEndpointName('color_temperature', msg, model, meta);
+                    payload[property] = color_temperature;
+                    const deltaProperty = postfixWithEndpointName('action_color_temperature_delta', msg, model, meta);
+                    payload[deltaProperty] = delta;
+                }
+            }
+
+            addActionGroup(payload, msg, model);
+            return payload;
+        },
+    } 
+};
 
 const definition = {
     fingerprint: [
@@ -21,7 +72,7 @@ const definition = {
         fz.command_step,
         fz.command_toggle,
         fz.command_move_hue,
-        fz.command_step_color_temperature,
+        fz.command_step_color_temperature_custom,
         fz.command_stop_move_raw,
         fz.tuya_multi_action,
         fz.tuya_operation_mode,
@@ -45,6 +96,7 @@ const definition = {
             'rotate_right',
         ]),
         e.numeric("action_brightness_delta", ea.STATE).withValueMin(-255).withValueMax(255),
+        e.numeric("action_color_temperature_delta", ea.STATE).withValueMin(-5000).withValueMax(5000),
         e.numeric('action_step_size', ea.STATE).withValueMin(-255).withValueMax(255),
         e.numeric('action_transition_time', ea.STATE).withUnit('s'),
         e.numeric('action_rate', ea.STATE).withValueMin(0).withValueMax(255),

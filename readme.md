@@ -6,28 +6,13 @@ I'm happy to annouce that it's now possible to use the Tuya Smart Knob for perfe
 
 ### Zigbee2Mqtt
 
-## CAUTION
-
-
-
-
 As of now (24.11.2024) the required change is not in zigbee2mqtt converter yet, so it requires to use an external converter. For that you'll need access to the filesystem. For examle file-editor, vscode server addon, ssh etc.
 
-1. create a folder named `external_converters` next to the configuration.yaml of zigbee2mqtt. In homeassistant it's located in `/homeassistant/zigbee2mqtt/`
+1. create a folder named custom_devices next to the configuration.yaml of zigbee2mqtt. In homeassistant it's located in `/homeassistant/zigbee2mqtt/`
 2. create a file named `tuya_new.js` or how you like to name your converter and copy the contents of device_config.ts to your created file.
-
-### Zigbee2mqtt > v2.0.0
-3. add the following entry to the configuration.yaml
-```
-homeassistant:
-  legacy_action_sensor: true
-```
-4. restart, now the description of the smart knob should say: `smart knob custom`
-
-### Zigbee2mqtt < v2.0.0
 3. go to the zigbee2mqtt UI and click on settings
 4. navigate to the external converters tab
-5. add entry for your newly created file. eg: `external_converters/tuya_new.js`
+5. add entry for your newly created file. eg: `custom_devices/tuya_new.js`
 6. click submit and restart zigbee2mqtt addon.
 
 You should now see in your device page under details a new entry called `Action brightness delta`. Make sure the smart knob is in command mode. To change the mode quickly click the smart knob 3 times, it will change the mode.
@@ -38,9 +23,11 @@ You'll also have to set the device specific settings and then fill simulated bri
 
 The blueprint is the second part that allows dimming or even volume control.
 
-[![Open your Home Assistant instance and show the blueprint import dialog with a specific blueprint pre-filled.](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FTheUnlimited64%2Ftuya_smart_knob_blueprint%2Fblob%2FBlueprint_V1%2Fblueprint.yaml)
+[![Open your Home Assistant instance and show the blueprint import dialog with a specific blueprint pre-filled.](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FTheUnlimited64%2Ftuya_smart_knob_blueprint%2Fblob%2Fmaster%2Fblueprint.yaml)
 
 ### Usage example
+
+#### Default blueprint
 
 The blueprint exposes the `delta_value` variable to be used for smart dimming. It contains how many ticks where send by the action of the smart knob. You can also control your volume control or build even more complex automations.
 
@@ -69,4 +56,45 @@ use_blueprint:
         action: light.toggle
         data:
           transition: 0.5
+```
+
+#### Color Temperature blueprint
+
+This blueprint additionally uses the color temperature delta value from zigbee2mqtt. If you press and then turn, it will counts towards the color temperature. But you're free to use the value for anything else. Maybe a different lamp, led strip.
+
+
+Usage example:
+
+```
+alias: Universal Smart Knob Control Tuya
+description: ""
+use_blueprint:
+  path: TheUnlimited64/blueprint_color_temp.yaml
+  input:
+    brightness_sensor: sensor.nachttisch_smart_knob_action_brightness_delta
+    click_sensor: sensor.nachttisch_smart_knob_action
+    color_temperature_sensor: sensor.nachttisch_smart_knob_action_color_temperature_delta
+    rotation_action:
+      - target:
+          entity_id: light.schlafzimmer_haupt_lampe
+        data:
+          brightness_step_pct: "{{ delta_value * 10 }}"
+          transition: 0.5
+        action: light.turn_on
+    click_action:
+      - target:
+          entity_id: light.schlafzimmer_haupt_lampe
+        action: light.toggle
+        data:
+          transition: 0.5
+    color_temperature_action:
+      - target:
+          entity_id: light.schlafzimmer_haupt_lampe
+        action: light.turn_on
+        data:
+          kelvin: >-
+            {{state_attr('light.schlafzimmer_haupt_lampe', 'color_temp') | int +
+            delta_value*500}}
+          transition: 0.5
+
 ```
