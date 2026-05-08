@@ -1,54 +1,40 @@
 # Tuya Smart Knob blueprint for dimming with Zigbee2Mqtt
 
-I'm happy to annouce that it's now possible to use the Tuya Smart Knob for perfect dimming with zigbee2mqtt in home assistant!
+Control any entity with a Tuya Smart Knob using customizable rotation, click, and press-turn (color temperature) actions.
+
+## Requirements
+
+- **Zigbee2Mqtt >=2.10.1-1** — The converter is now natively built-in. No external converter is needed!
 
 ## Installation/Usage
 
 ### Zigbee2Mqtt
 
-## CAUTION
-
-
-
-
-As of now (24.11.2024) the required change is not in zigbee2mqtt converter yet, so it requires to use an external converter. For that you'll need access to the filesystem. For examle file-editor, vscode server addon, ssh etc.
-
-1. create a folder named `external_converters` next to the configuration.yaml of zigbee2mqtt. In homeassistant it's located in `/homeassistant/zigbee2mqtt/`
-2. create a file named `tuya_new.js` or how you like to name your converter and copy the contents of device_config.ts to your created file.
-
-### Zigbee2mqtt > v2.0.0
-3. add the following entry to the configuration.yaml
-```
+1. Make sure you are running Zigbee2Mqtt >=2.10.1-1
+2. Add the following entry to your `configuration.yaml`:
+```yaml
 homeassistant:
   legacy_action_sensor: true
 ```
-4. restart, now the description of the smart knob should say: `smart knob custom`
+3. Restart Zigbee2Mqtt
 
-### Zigbee2mqtt < v2.0.0
-3. go to the zigbee2mqtt UI and click on settings
-4. navigate to the external converters tab
-5. add entry for your newly created file. eg: `external_converters/tuya_new.js`
-6. click submit and restart zigbee2mqtt addon.
+You should now see in your device page under details entries for `Action brightness delta` and `Action color temperature delta`. Make sure the Smart Knob is in command mode. To change the mode quickly click the Smart Knob 3 times.
 
-You should now see in your device page under details a new entry called `Action brightness delta`. Make sure the smart knob is in command mode. To change the mode quickly click the smart knob 3 times, it will change the mode.
-
-You'll also have to set the device specific settings and then fill simulated brightness. I've set it to 1 and 1, and it works.
+You'll also have to set the device specific settings under simulated brightness. Set it to 1 and 1.
 
 ## Blueprint
 
 The blueprint is the second part that allows dimming or even volume control.
 
-[![Open your Home Assistant instance and show the blueprint import dialog with a specific blueprint pre-filled.](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FTheUnlimited64%2Ftuya_smart_knob_blueprint%2Fblob%2FBlueprint_V1%2Fblueprint.yaml)
+[![Open your Home Assistant instance and show the blueprint import dialog with a specific blueprint pre-filled.](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fraw.githubusercontent.com%2FTheUnlimited64%2Ftuya_smart_knob_blueprint%2Fmaster%2Fblueprint.yaml)
 
 ### Usage example
 
-The blueprint exposes the `delta_value` variable to be used for smart dimming. It contains how many ticks where send by the action of the smart knob. You can also control your volume control or build even more complex automations.
+The blueprint exposes the `delta_value` variable to be used for smart dimming. It contains how many ticks were sent by the action of the Smart Knob. You can also control your volume or build even more complex automations.
 
+To use the variables you need to use the YAML editor instead of the visual editor of the automation. Click on the three dots and select YAML editor.
 
-To use the variables you need to use the yaml editor, instead of the visual editor of the automation. For that click on the three dots and select yaml editor.
-
-
-```
+```yaml
 description: ""
 alias: Universal Smart Knob Control
 use_blueprint:
@@ -56,6 +42,7 @@ use_blueprint:
   input:
     brightness_sensor: sensor.nachttisch_smart_knob_action_brightness_delta
     click_sensor: sensor.nachttisch_smart_knob_action
+    color_temperature_sensor: sensor.nachttisch_smart_knob_action_color_temperature_delta
     rotation_action:
       - target:
           entity_id: light.schlafzimmer_haupt_lampe
@@ -69,4 +56,19 @@ use_blueprint:
         action: light.toggle
         data:
           transition: 0.5
+    color_temperature_action:
+      - target:
+          entity_id: light.schlafzimmer_haupt_lampe
+        data:
+          color_temp_step: "{{ delta_value }}"
+          transition: 0.5
+        action: light.turn_on
 ```
+
+## Older versions
+
+If you are using an older version of Zigbee2Mqtt, check the archive branches:
+
+- **[archive/v1-basic](../../tree/archive/v1-basic)** — Basic brightness + click only, for Zigbee2Mqtt <2.0
+- **[archive/v2-color-temp-legacy](../../tree/archive/v2-color-temp-legacy)** — Color temperature support with custom converter (simulated), for Zigbee2Mqtt <2.0
+- **[archive/v3-color-temp-esm](../../tree/archive/v3-color-temp-esm)** — Color temperature support with ESM custom converter, for Zigbee2Mqtt ~2.10.0
