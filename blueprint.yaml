@@ -51,7 +51,7 @@ blueprint:
       default: []
       selector:
         action: {}
-  source_url: https://github.com/TheUnlimited64/tuya_smart_knob_blueprint/blob/Blueprint_Color_Temp_V1/blueprint_color_temp.yaml
+  source_url: https://github.com/TheUnlimited64/tuya_smart_knob_blueprint/blob/master/blueprint.yaml
 mode: parallel
 max_exceeded: silent
 trigger:
@@ -73,7 +73,7 @@ action:
     - condition: template
       value_template: "{{ not is_state(trigger.entity_id, 'unavailable') and\n    not
         is_state(trigger.entity_id, 'unknown') and\n    trigger.to_state.state not
-        in ['unavailable', 'unknown'] }}\n"
+        in ['unavailable', 'unknown', ''] }}\n"
     sequence:
     - variables:
         delta_value: '{{ trigger.to_state.state | float(0) / 12.5 }}'
@@ -85,7 +85,7 @@ action:
     - condition: template
       value_template: "{{ not is_state(trigger.entity_id, 'unavailable') and\n    not
         is_state(trigger.entity_id, 'unknown') and\n    trigger.to_state.state not
-        in ['unavailable', 'unknown', 'null'] }}\n"
+        in ['unavailable', 'unknown', 'null', ''] }}\n"
     sequence:
     - variables:
         delta_value: '{{ trigger.to_state.state | float(0) }}'
